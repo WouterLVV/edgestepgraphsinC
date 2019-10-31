@@ -229,9 +229,7 @@ void build_nodes(struct es_graph *g) {
     }
 }
 
-double p() {
-    return 0.90;
-}
+double p();
 
 void edge_step(struct es_graph *g) {
     unsigned int r1, r2;
@@ -275,6 +273,9 @@ void evolve(struct es_graph *g) {
     } else {
         edge_step(g);
     }
+    build_nodes(g);
+    collapse_neighbors(g);
+    printf("%lu\n", total_distance2(g));
 }
 
 unsigned long total_distance2(struct es_graph *g) {
@@ -283,6 +284,8 @@ unsigned long total_distance2(struct es_graph *g) {
     unsigned int* counters = malloc(sizeof(int)*g->vsize);
     bool* trimmed = calloc(g->vsize, sizeof(bool));
     bool* seen = malloc(sizeof(bool)*g->vsize);
+    bool* found = malloc(sizeof(bool)*g->vsize);
+
     unsigned int* components = calloc(g->vsize, sizeof(unsigned int));
     unsigned int* path_lengths = calloc(g->vsize, sizeof(unsigned int));
     unsigned int diameter = 0;
@@ -295,6 +298,7 @@ unsigned long total_distance2(struct es_graph *g) {
     }
 
     // determine components
+    memset(found, false, sizeof(bool)*g->vsize);
     unsigned int component_counter = 0;
     for (unsigned int i = 0; i < g->vsize; i++) {
         if (components[i] != 0) continue;
@@ -314,8 +318,9 @@ unsigned long total_distance2(struct es_graph *g) {
             components[cur] = component_counter;
             for (unsigned int j = 0; j < g->v[cur].nbs_size; j++) {
                 unsigned int nb_id = g->v[cur].nbs_list[j];
-                if (components[nb_id] == 0) {
+                if (!found[nb_id] && components[nb_id] == 0) {
                     simple_append(sll, nb_id);
+                    found[nb_id] = true;
                 }
             }
         }
@@ -332,6 +337,7 @@ unsigned long total_distance2(struct es_graph *g) {
 
 
     // Trim leaves
+    memset(found, false, sizeof(bool)*g->vsize);
     for (unsigned int i = 0; i < g->vsize; i++) {
         if (trimmed[i] || counters[i] != 1) {
             continue;
@@ -357,8 +363,9 @@ unsigned long total_distance2(struct es_graph *g) {
                 if (path_lengths[cur] + 1 > path_lengths[nb_id]) {
                     path_lengths[nb_id] = path_lengths[cur] + 1;
                 }
-                if (!trimmed[nb_id] && counters[nb_id] == 1) {
+                if (!trimmed[nb_id] && !found[nb_id] && counters[nb_id] == 1) {
                     simple_append(sll, nb_id);
+                    found[nb_id] = true;
                 }
             }
         }
@@ -376,6 +383,7 @@ unsigned long total_distance2(struct es_graph *g) {
     for (unsigned int i = 0; i < g->vsize; i++) {
         if (trimmed[i]) continue;
         memset(seen, false, sizeof(bool)*g->vsize);
+        memset(found, false, sizeof(bool)*g->vsize);
         struct nd_tuple* n = malloc(sizeof(struct nd_tuple));
         n->node = i;
         n->dist = 0;
@@ -394,18 +402,19 @@ unsigned long total_distance2(struct es_graph *g) {
             }
             for (unsigned int j = 0; j < g->v[cur->node].nbs_size; j++) {
                 unsigned int nb_id = g->v[cur->node].nbs_list[j];
-                if (!seen[nb_id] && !trimmed[nb_id]) {
+                if (!seen[nb_id] && !found[nb_id] && !trimmed[nb_id]) {
                     struct nd_tuple *next = malloc(sizeof(struct nd_tuple));
                     next->node = nb_id;
                     next->dist = cur->dist + 1;
                     append(ll, next);
+                    found[nb_id] = true;
                 }
             }
             free(cur);
         }
 
     }
-    total >>= 1;
+    total >>= 1u;
 
     for (unsigned int i = 0; i < g->vsize; i++) {
         if (!trimmed[i]) continue;
@@ -421,7 +430,8 @@ unsigned long total_distance2(struct es_graph *g) {
     free(trimmed);
     free(seen);
     free(component_sizes);
-    printf("%u\n", diameter);
+    free(found);
+//    printf("%u\n", diameter);
     return total;
 }
 
@@ -464,15 +474,19 @@ unsigned long total_distance(struct es_graph *g) {
 }
 
 
+double p() {
+    return 0.90;
+}
 
 int main() {
 //    printf("%f\n", 0.9);
 //    printf("%d", false);
 //    exit(0);
 //    srandom(time(0));
-    srand48(time(0));
-//    srand48(333111);
-    struct es_graph* g = generate_edge_step(0, 20000);
+//    srand48(time(0));
+//    srand48(33112);
+    srand48(96723);
+    struct es_graph* g = generate_edge_step(0, 40);
     printf("%u\n%u\n", g->vsize, g->esize);
 //    for (int i = 0; i < g->esize; i++) {
 //        printf("(%u, %u) ", g->e[i].head, g->e[i].tail);
