@@ -319,40 +319,37 @@ void resize_nbs(struct node *n) {
 
 
 void update_distance(struct es_graph *g) {
-    bool* seen = malloc(sizeof(bool)*g->vsize);
     bool* found = malloc(sizeof(bool)*g->vsize);
+    struct nd_tuple* q = malloc(sizeof(struct nd_tuple)*g->vsize);
+    unsigned int qhead = 0;
+    unsigned int qtail = 0;
 
     unsigned long total = 0;
-    struct linked_list *ll = malloc(sizeof(struct linked_list));
-    init_linked_list(ll);
+
     for (unsigned int i = 0; i < g->vsize; i++) {
         if (g->v[i].parent != i) continue;
-        memset(seen, false, sizeof(bool)*g->vsize);
         memset(found, false, sizeof(bool)*g->vsize);
-        struct nd_tuple* n = malloc(sizeof(struct nd_tuple));
-        n->node = i;
-        n->dist = 0;
-        append(ll, n);
-        struct nd_tuple *cur;
-        while ((cur = (struct nd_tuple*)pop(ll)) != NULL) {
-            if (seen[cur->node]) {
-                free(cur);
-                continue;
-            }
-//            printf("(%u, %u)\n", cur->node, cur->dist);
-            seen[cur->node] = true;
-            total += cur->dist * (g->v[cur->node].num_children+1) * (g->v[i].num_children+1);
-            for (unsigned int j = 0; j < g->v[cur->node].nbs_size; j++) {
-                unsigned int nb_id = g->v[cur->node].nbs_list[j];
-                if (!seen[nb_id] && !found[nb_id] && g->v[nb_id].parent == nb_id) {
-                    struct nd_tuple *next = malloc(sizeof(struct nd_tuple));
-                    next->node = nb_id;
-                    next->dist = cur->dist + 1;
-                    append(ll, next);
+        found[i] = true;
+        qhead = 0;
+        qtail = 0;
+        q[qtail].node = i;
+        q[qtail].dist = 0;
+        qtail++;
+
+
+        while (qhead != qtail) {
+            struct nd_tuple cur = q[qhead];
+            qhead++;
+            total += cur.dist * (g->v[cur.node].num_children+1) * (g->v[i].num_children+1);
+            for (unsigned int j = 0; j < g->v[cur.node].nbs_size; j++) {
+                unsigned int nb_id = g->v[cur.node].nbs_list[j];
+                if (!found[nb_id] && g->v[nb_id].parent == nb_id) {
+                    q[qtail].node = nb_id;
+                    q[qtail].dist = cur.dist + 1;
+                    qtail++;
                     found[nb_id] = true;
                 }
             }
-            free(cur);
         }
 
     }
@@ -362,10 +359,7 @@ void update_distance(struct es_graph *g) {
         if (g->v[i].parent == i) continue;
         total += (g->v[i].num_children+1) * (g->component_sizes[find_component_root(g, i)] - (g->v[i].num_children+1));
     }
-
-
-    free(ll);
-    free(seen);
+    free(q);
     free(found);
     g->total_distance = total;
 }
@@ -540,47 +534,39 @@ void vertex_step(struct es_graph *g) {
             depth++;
 
         }
-        struct linked_list *ll = malloc(sizeof(struct linked_list));
-        init_linked_list(ll);
 
-        bool* seen = (bool*)malloc(sizeof(bool)*g->vsize);
         bool* found = (bool*)malloc(sizeof(bool)*g->vsize);
+        struct nd_tuple* q = malloc(sizeof(struct nd_tuple)*g->vsize);
+        unsigned int qhead = 0;
+        unsigned int qtail = 0;
 
-        memset(seen, false, sizeof(bool)*g->vsize);
         memset(found, false, sizeof(bool)*g->vsize);
-        struct nd_tuple* n = malloc(sizeof(struct nd_tuple));
-        n->node = tmp;
-        n->dist = 0;
-        append(ll, n);
-        struct nd_tuple *cur;
-        while ((cur = (struct nd_tuple*)pop(ll)) != NULL) {
-            if (seen[cur->node]) {
-                free(cur);
-                continue;
-            }
-//            printf("(%u, %u)\n", cur->node, cur->dist);
-            seen[cur->node] = true;
+        found[tmp] = true;
+        q[qtail].node = tmp;
+        q[qtail].dist = 0;
+        qtail++;
+        while (qhead != qtail) {
+            struct nd_tuple cur = q[qhead];
+            qhead++;
 
-            if (cur->dist > 0) {
-                for (unsigned int i = 0; i < g->v[cur->node].tree_depth; i++) {
-                    g->total_distance += (depth + i + cur->dist) * g->v[cur->node].tree_struct[i];
+
+            if (cur.dist > 0) {
+                for (unsigned int i = 0; i < g->v[cur.node].tree_depth; i++) {
+                    g->total_distance += (depth + i + cur.dist) * g->v[cur.node].tree_struct[i];
                 }
             }
 
-            for (unsigned int j = 0; j < g->v[cur->node].nbs_size; j++) {
-                unsigned int nb_id = g->v[cur->node].nbs_list[j];
-                if (!found[nb_id] && g->v[nb_id].parent == nb_id && !seen[nb_id]) {
-                    struct nd_tuple *next = malloc(sizeof(struct nd_tuple));
-                    next->node = nb_id;
-                    next->dist = cur->dist + 1;
-                    append(ll, next);
+            for (unsigned int j = 0; j < g->v[cur.node].nbs_size; j++) {
+                unsigned int nb_id = g->v[cur.node].nbs_list[j];
+                if (!found[nb_id] && g->v[nb_id].parent == nb_id) {
+                    q[qtail].node = nb_id;
+                    q[qtail].dist = cur.dist + 1;
+                    qtail++;
                     found[nb_id] = true;
                 }
             }
-            free(cur);
         }
-        free(ll);
-        free(seen);
+        free(q);
         free(found);
 
 
@@ -832,7 +818,7 @@ int main() {
 //    srand48(time(0));
 //    srand48(33112);
     srand48(96723);
-    struct es_graph* g = generate_edge_step(0, 10000);
+    struct es_graph* g = generate_edge_step(0, 8000);
     printf("%u\n%u\n", g->vsize, g->esize);
 //    for (int i = 0; i < g->esize; i++) {
 //        printf("%u: (%u, %u),  ", i, g->e[i].head, g->e[i].tail);
@@ -865,7 +851,8 @@ int main() {
 //    printf("%lu, %lu\n", div_fact, g->total_distance_div);
 
     fflush(stdout);
-    return 0;
+//    return 0;
+    exit(0);
 }
 
 //int main() {
