@@ -285,12 +285,17 @@ unsigned long total_distance2(struct es_graph *g) {
     bool* trimmed = calloc(g->vsize, sizeof(bool));
     bool* seen = malloc(sizeof(bool)*g->vsize);
     bool* found = malloc(sizeof(bool)*g->vsize);
+    unsigned int* q1 = malloc(sizeof(unsigned int)*g->vsize);
+    struct nd_tuple* q2 = malloc(sizeof(struct nd_tuple)*g->vsize);
+    unsigned int qhead = 0;
+    unsigned int qtail = 0;
+
 
     unsigned int* components = calloc(g->vsize, sizeof(unsigned int));
     unsigned int* path_lengths = calloc(g->vsize, sizeof(unsigned int));
     unsigned int diameter = 0;
-    struct simple_linked_list *sll = malloc(sizeof(struct simple_linked_list));
-    init_simple_linked_list(sll);
+//    struct simple_linked_list *sll = malloc(sizeof(struct simple_linked_list));
+//    init_simple_linked_list(sll);
 
     for (unsigned int i = 0; i < g->vsize; i++) {
         counters[i] = g->v[i].nbs_size;
@@ -302,16 +307,19 @@ unsigned long total_distance2(struct es_graph *g) {
     unsigned int component_counter = 0;
     for (unsigned int i = 0; i < g->vsize; i++) {
         if (components[i] != 0) continue;
-
+        qhead = 0;
+        qtail = 0;
         component_counter++;
-        simple_append(sll, i);
+        q1[qtail] = i;
+        qtail++;
         unsigned int cur;
-        while (!simple_is_empty(sll)) {
+        while (qhead != qtail) {
 //            for (unsigned int k = 0; k < g->vsize; k++) {
 //                printf("%3d: %d, %d, %d\n", k, trimmed[k], coeffs[k], counters[k]);
 //            }
 //            printf("\n\n");
-            cur = simple_pop(sll);
+            cur = q1[qhead];
+            qhead++;
             if (components[cur] != 0) {
                 continue;
             }
@@ -319,7 +327,8 @@ unsigned long total_distance2(struct es_graph *g) {
             for (unsigned int j = 0; j < g->v[cur].nbs_size; j++) {
                 unsigned int nb_id = g->v[cur].nbs_list[j];
                 if (!found[nb_id] && components[nb_id] == 0) {
-                    simple_append(sll, nb_id);
+                    q1[qtail] = nb_id;
+                    qtail++;
                     found[nb_id] = true;
                 }
             }
@@ -342,15 +351,19 @@ unsigned long total_distance2(struct es_graph *g) {
         if (trimmed[i] || counters[i] != 1) {
             continue;
         }
+        qhead = 0;
+        qtail = 0;
 
-        simple_append(sll, i);
+        q1[qtail] = i;
+        qtail++;
         unsigned int cur;
-        while (!simple_is_empty(sll)) {
+        while (qhead != qtail) {
 //            for (unsigned int k = 0; k < g->vsize; k++) {
 //                printf("%3d: %d, %d, %d\n", k, trimmed[k], coeffs[k], counters[k]);
 //            }
 //            printf("\n\n");
-            cur = simple_pop(sll);
+            cur = q1[qhead];
+            qhead++;
             if (trimmed[cur]) {
                 continue;
             }
@@ -364,7 +377,8 @@ unsigned long total_distance2(struct es_graph *g) {
                     path_lengths[nb_id] = path_lengths[cur] + 1;
                 }
                 if (!trimmed[nb_id] && !found[nb_id] && counters[nb_id] == 1) {
-                    simple_append(sll, nb_id);
+                    q1[qtail] = nb_id;
+                    qtail++;
                     found[nb_id] = true;
                 }
             }
@@ -378,39 +392,37 @@ unsigned long total_distance2(struct es_graph *g) {
 
 
     unsigned long total = 0;
-    struct linked_list *ll = malloc(sizeof(struct linked_list));
-    init_linked_list(ll);
     for (unsigned int i = 0; i < g->vsize; i++) {
         if (trimmed[i]) continue;
         memset(seen, false, sizeof(bool)*g->vsize);
         memset(found, false, sizeof(bool)*g->vsize);
-        struct nd_tuple* n = malloc(sizeof(struct nd_tuple));
-        n->node = i;
-        n->dist = 0;
-        append(ll, n);
-        struct nd_tuple *cur;
-        while ((cur = (struct nd_tuple*)pop(ll)) != NULL) {
-            if (seen[cur->node] || trimmed[cur->node]) {
-                free(cur);
+        qhead = 0;
+        qtail = 0;
+        q2[qtail].node = i;
+        q2[qtail].dist = 0;
+        qtail++;
+        struct nd_tuple cur;
+        while (qhead != qtail) {
+            cur = q2[qhead];
+            qhead++;
+            if (seen[cur.node] || trimmed[cur.node]) {
                 continue;
             }
 //            printf("(%u, %u)\n", cur->node, cur->dist);
-            seen[cur->node] = true;
-            total += cur->dist * coeffs[cur->node]*coeffs[i];
-            if (cur->dist + path_lengths[cur->node] + path_lengths[i] > diameter) {
-                diameter = cur->dist + path_lengths[cur->node] + path_lengths[i];
+            seen[cur.node] = true;
+            total += cur.dist * coeffs[cur.node]*coeffs[i];
+            if (cur.dist + path_lengths[cur.node] + path_lengths[i] > diameter) {
+                diameter = cur.dist + path_lengths[cur.node] + path_lengths[i];
             }
-            for (unsigned int j = 0; j < g->v[cur->node].nbs_size; j++) {
-                unsigned int nb_id = g->v[cur->node].nbs_list[j];
+            for (unsigned int j = 0; j < g->v[cur.node].nbs_size; j++) {
+                unsigned int nb_id = g->v[cur.node].nbs_list[j];
                 if (!seen[nb_id] && !found[nb_id] && !trimmed[nb_id]) {
-                    struct nd_tuple *next = malloc(sizeof(struct nd_tuple));
-                    next->node = nb_id;
-                    next->dist = cur->dist + 1;
-                    append(ll, next);
+                    q2[qtail].node = nb_id;
+                    q2[qtail].dist = cur.dist + 1;
+                    qtail++;
                     found[nb_id] = true;
                 }
             }
-            free(cur);
         }
 
     }
@@ -423,14 +435,14 @@ unsigned long total_distance2(struct es_graph *g) {
 
     free(path_lengths);
     free(components);
-    free(ll);
-    free(sll);
     free(coeffs);
     free(counters);
     free(trimmed);
     free(seen);
     free(component_sizes);
     free(found);
+    free(q1);
+    free(q2);
 //    printf("%u\n", diameter);
     return total;
 }
@@ -486,7 +498,7 @@ int main() {
 //    srand48(time(0));
 //    srand48(33112);
     srand48(96723);
-    struct es_graph* g = generate_edge_step(0, 40);
+    struct es_graph* g = generate_edge_step(0, 4000);
     printf("%u\n%u\n", g->vsize, g->esize);
 //    for (int i = 0; i < g->esize; i++) {
 //        printf("(%u, %u) ", g->e[i].head, g->e[i].tail);
