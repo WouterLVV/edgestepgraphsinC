@@ -273,9 +273,9 @@ void evolve(struct es_graph *g) {
     } else {
         edge_step(g);
     }
-    build_nodes(g);
-    collapse_neighbors(g);
-    printf("%lu\n", total_distance2(g));
+//    build_nodes(g);
+//    collapse_neighbors(g);
+//    printf("%lu\n", total_distance2(g));
 }
 
 unsigned long total_distance2(struct es_graph *g) {

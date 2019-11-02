@@ -9,125 +9,20 @@
 #include <assert.h>
 #include <string.h>
 
+
+//// Default Values
+
 #define NBS_INIT_SIZE 32
 #define TREE_INIT_SIZE 32
 #define MAX_DIAMETER 1000
+
+//// Flags
 
 #define CSV_OUTPUT 1
 #define DEBUG 0
 
 
-struct simple_doubly_linked_list_node {
-    struct simple_doubly_linked_list_node* next;
-    struct simple_doubly_linked_list_node* prev;
-    unsigned int data;
-};
-
-struct simple_doubly_linked_list {
-    struct simple_doubly_linked_list_node* first;
-    struct simple_doubly_linked_list_node* last;
-};
-
-void init_simple_linked_list (struct simple_doubly_linked_list* ll) {
-    ll->first = NULL;
-    ll->last = NULL;
-};
-
-void simple_append(struct simple_doubly_linked_list* sll, unsigned int data) {
-    struct simple_doubly_linked_list_node *new_node = malloc(sizeof(struct simple_doubly_linked_list_node));
-    new_node->data = data;
-    new_node->next = NULL;
-    if (sll->first == NULL) {
-        sll->first = new_node;
-        sll->last = new_node;
-        new_node->prev = NULL;
-    } else {
-        sll->last->next = new_node;
-        new_node->prev = sll->last;
-        sll->last = new_node;
-    }
-}
-
-unsigned int simple_pop(struct simple_doubly_linked_list* ll) {
-    if (ll->first == NULL) {
-        return 0;
-    }
-    struct simple_doubly_linked_list_node *front = ll->first;
-    unsigned int ret = front->data;
-    ll->first = front->next;
-    if (ll->first != NULL) {
-        ll->first->prev = NULL;
-    } else {
-        ll->last = NULL;
-    }
-    free(front);
-    return ret;
-}
-
-unsigned int simple_pop_right(struct simple_doubly_linked_list* ll) {
-    if (ll->first == NULL) {
-        return 0;
-    }
-    struct simple_doubly_linked_list_node *back = ll->last;
-    unsigned int ret = back->data;
-    ll->last = back->prev;
-    if (ll->last != NULL) {
-        ll->last->next = NULL;
-    } else {
-        ll->first = NULL;
-    }
-    free(back);
-    return ret;
-}
-
-bool simple_is_empty(struct simple_doubly_linked_list* ll) {
-    return ll->first == NULL;
-}
-
-
-struct linked_list_node {
-    struct linked_list_node* next;
-    void* data;
-};
-
-struct linked_list {
-    struct linked_list_node* first;
-    struct linked_list_node* last;
-};
-
-void init_linked_list (struct linked_list* ll) {
-    ll->first = NULL;
-    ll->last = NULL;
-};
-
-void append(struct linked_list* ll, void* data) {
-    struct linked_list_node *new_node = malloc(sizeof(struct linked_list_node));
-    new_node->data = data;
-    new_node->next = NULL;
-    if (ll->first == NULL) {
-        ll->first = new_node;
-        ll->last = new_node;
-    } else {
-        ll->last->next = new_node;
-        ll->last = new_node;
-    }
-}
-
-void* pop(struct linked_list* ll) {
-    if (ll->first == NULL) {
-        return NULL;
-    }
-    struct linked_list_node *front = ll->first;
-    void* ret = front->data;
-    ll->first = front->next;
-    free(front);
-    return ret;
-}
-
-bool is_empty(struct linked_list* ll) {
-    return ll->first == NULL;
-}
-
+//// Struct definitions
 
 struct nd_tuple {
     unsigned int node;
@@ -137,11 +32,11 @@ struct nd_tuple {
 struct node {
     unsigned int nbs_size;
     unsigned int max_nbs_size;
-    unsigned int* nbs_list;
+    unsigned int *nbs_list;
     unsigned int parent;
     unsigned int tree_depth;
     unsigned int max_tree_depth;
-    unsigned int* tree_struct;
+    unsigned int *tree_struct;
     unsigned int num_children;
 };
 
@@ -154,31 +49,25 @@ struct es_graph {
     unsigned int vsize;
     unsigned int esize;
     double d;
-    struct node* v;
-    struct edge* e;
-    unsigned int* distribution;
-    unsigned int* component_sizes;
-    unsigned int* component_tree;
+    struct node *v;
+    struct edge *e;
+    unsigned int *distribution;
+    unsigned int *component_sizes;
+    unsigned int *component_tree;
     unsigned long total_distance;
     unsigned long total_distance_div;
-    unsigned long* typical_distance;
+    unsigned long *typical_distance;
     unsigned long max_distance;
     unsigned int diameter;
 };
 
-//double rand_double() {
-//    return (double) random() / (double) (RAND_MAX);
-//}
+
+//// Standard functions
 
 double rand_double() {
     return drand48();
 }
 
-
-/* Returns an integer in the range [0, n).
- *
- * Uses rand(), and so is affected-by/affects the same seed.
- */
 long rand_int(unsigned int n) {
     if ((n - 1) == RAND_MAX) {
         return lrand48();
@@ -202,47 +91,66 @@ long rand_int(unsigned int n) {
     }
 }
 
-//long rand_int(long max) {
-//    return random() % max;
-//}
-
-void evolve(struct es_graph *g);
-
-void build_nodes(struct es_graph *g);
-
-void collapse_neighbors(struct es_graph *g);
-
-double p();
-
-unsigned long total_distance2(struct es_graph *g);
-
-struct node* init_node(struct node *n) {
+struct node *init_node(struct node *n) {
     n->max_nbs_size = NBS_INIT_SIZE;
     n->max_tree_depth = TREE_INIT_SIZE;
     n->tree_depth = 1;
     n->nbs_size = 0;
     n->tree_struct = calloc(n->max_tree_depth, sizeof(int));
     n->tree_struct[0] = 1;
-    n->nbs_list = malloc(sizeof(int)* n->max_nbs_size);
+    n->nbs_list = malloc(sizeof(int) * n->max_nbs_size);
     n->num_children = 0;
     return n;
 }
 
+
+
+//// Function definitions
+
+struct es_graph *generate_edge_step(double d, int t);
+
+void evolve(struct es_graph *g);
+
+double p();
+
+void vertex_step(struct es_graph *g);
+
+void edge_step(struct es_graph *g);
+
+void update_distance(struct es_graph *g);
+
+unsigned int find_component_root(struct es_graph *g, unsigned int n);
+
+void print_stats(struct es_graph *g);
+
+void mark_nodes(struct es_graph *g, unsigned int n1, unsigned int n2);
+
+
+//// Array resizers;
+
+void resize_tree(struct node *n);
+
+void resize_typical(struct es_graph *g);
+
+void resize_nbs(struct node *n);
+
+
 struct es_graph *generate_edge_step(double d, int t) {
+    // Create and initialize all values of the struct
     struct es_graph *g = malloc(sizeof(struct es_graph));
     g->vsize = 1;
     g->esize = 1;
     g->d = d;
-    g->v = (struct node*)calloc(t, sizeof(struct node));
-    g->e = (struct edge*)malloc(sizeof(struct edge)*t);
-    g->distribution = (unsigned int*)malloc(sizeof(int)*t*2);
-    g->component_sizes = (unsigned int*)malloc(sizeof(int)*t);
-    g->component_tree = (unsigned int*)malloc(sizeof(int)*t);
+    g->v = (struct node *) calloc(t, sizeof(struct node));
+    g->e = (struct edge *) malloc(sizeof(struct edge) * t);
+    g->distribution = (unsigned int *) malloc(sizeof(int) * t * 2);
+    g->component_sizes = (unsigned int *) malloc(sizeof(int) * t);
+    g->component_tree = (unsigned int *) malloc(sizeof(int) * t);
     g->total_distance = 0;
     g->total_distance_div = 0;
     g->diameter = 0;
     g->max_distance = MAX_DIAMETER;
-    g->typical_distance = (unsigned long*)calloc(MAX_DIAMETER, sizeof(long));
+    g->typical_distance = (unsigned long *) calloc(MAX_DIAMETER, sizeof(long));
 
     g->component_sizes[0] = 1;
     g->component_tree[0] = 0;
@@ -252,64 +160,37 @@ struct es_graph *generate_edge_step(double d, int t) {
     g->distribution[1] = 0;
     init_node(&g->v[0]);
 
+    // Evolve t times
     for (unsigned int i = 1; i < t; i++) {
         evolve(g);
         if (CSV_OUTPUT) {
-            printf("%lu;%f;%u", g->total_distance, (double) (2 * g->total_distance) / (double) g->total_distance_div, g->diameter);
-//            unsigned long sum = 0;
-            for (unsigned int j = 1; j <= g->diameter; j++) {
-                printf(";%lu", g->typical_distance[j]);
-//                sum += j*g->typical_distance[j];
-            }
-//            printf(";%lu", sum);
-            printf("\n");
+            print_stats(g);
         }
     }
-//    build_nodes(g);
-//    collapse_neighbors(g);
     return g;
 }
 
-void collapse_neighbors(struct es_graph *g) {
-    bool* encounters = (bool*)calloc(g->vsize, sizeof(bool));
-    memset(encounters, false, g->vsize*sizeof(bool));
-    for (int i = 0; i < g->vsize; i++) {
-        for (int j = 0; j < g->v[i].nbs_size; j++) {
-            encounters[g->v[i].nbs_list[j]] = true;
-        }
-        encounters[i] = false;
-        unsigned int tmp = 0;
-        for (int j = 0; j < g->v[i].nbs_size; j++) {
-            if (encounters[g->v[i].nbs_list[j]]) {
-                g->v[i].nbs_list[tmp] = g->v[i].nbs_list[j];
-                tmp++;
-                encounters[g->v[i].nbs_list[j]] = false;
-            }
-        }
-        g->v[i].nbs_size = tmp;
+
+void evolve(struct es_graph *g) {
+    if (rand_double() < p()) {
+        vertex_step(g);
+    } else {
+        edge_step(g);
     }
-    free(encounters);
 }
 
-void build_nodes(struct es_graph *g) {
-    for (unsigned int i = 0; i < g->esize; i++) {
-        g->v[g->e[i].head].nbs_size++;
-        g->v[g->e[i].tail].nbs_size++;
+void print_stats(struct es_graph *g) {
+    printf("%lu;%f;%u", g->total_distance, (double) (2 * g->total_distance) / (double) g->total_distance_div,
+           g->diameter);
+    unsigned long sum = 0;
+    for (unsigned int j = 1; j <= g->diameter; j++) {
+        printf(";%lu", g->typical_distance[j]);
+        sum += j*g->typical_distance[j];
     }
-    for (unsigned int i = 0; i < g->vsize; i++) {
-        struct node *n = &(g->v[i]);
-        n->nbs_list = (unsigned int*)malloc(sizeof(unsigned int*)*n->nbs_size);
-        n->nbs_size = 0;
-    }
-    for (unsigned int i = 0; i < g->esize; i++) {
-        unsigned int head = g->e[i].head;
-        unsigned int tail = g->e[i].tail;
-        g->v[head].nbs_list[g->v[head].nbs_size] = tail;
-        g->v[head].nbs_size++;
-        g->v[tail].nbs_list[g->v[tail].nbs_size] = head;
-        g->v[tail].nbs_size++;
-    }
+    printf(";%lu", sum);
+    printf("\n");
 }
+
 
 unsigned int find_component_root(struct es_graph *g, unsigned int n) {
     while (g->component_tree[n] != n) {
@@ -319,40 +200,19 @@ unsigned int find_component_root(struct es_graph *g, unsigned int n) {
 }
 
 
-void resize_tree(struct node *n) {
-    unsigned int old_size = n->max_tree_depth;
-    n->max_tree_depth *= 2;
-    n->tree_struct = realloc(n->tree_struct, sizeof(int)*n->max_tree_depth);
-    memset(n->tree_struct+sizeof(int)*old_size, 0, sizeof(int)*old_size);
-}
-
-void resize_typical(struct es_graph *g) {
-    unsigned int old_size = g->max_distance;
-    g->max_distance *= 2;
-    g->typical_distance = realloc(g->typical_distance, sizeof(long) * g->max_distance);
-    memset(g->typical_distance + sizeof(long) * old_size, 0, sizeof(long) * old_size);
-}
-
-
-void resize_nbs(struct node *n) {
-    n->max_nbs_size *= 2;
-    n->nbs_list = realloc(n->nbs_list, sizeof(int)*n->max_nbs_size);
-}
-
-
 void update_distance(struct es_graph *g) {
-    bool* found = malloc(sizeof(bool)*g->vsize);
-    struct nd_tuple* q = malloc(sizeof(struct nd_tuple)*g->vsize);
+    bool *found = malloc(sizeof(bool) * g->vsize);
+    struct nd_tuple *q = malloc(sizeof(struct nd_tuple) * g->vsize);
     unsigned int qhead = 0;
     unsigned int qtail = 0;
 
-    memset(g->typical_distance, 0, (g->diameter+1)* sizeof(unsigned long));
-
+    // Reset typical distance and total
+    memset(g->typical_distance, 0, (g->diameter + 1) * sizeof(unsigned long));
     unsigned long total = 0;
 
     for (unsigned int i = 0; i < g->vsize; i++) {
         if (g->v[i].parent != i) continue;
-        memset(found, false, sizeof(bool)*g->vsize);
+        memset(found, false, sizeof(bool) * g->vsize);
         found[i] = true;
         qhead = 0;
         qtail = 0;
@@ -364,10 +224,10 @@ void update_distance(struct es_graph *g) {
         while (qhead != qtail) {
             struct nd_tuple cur = q[qhead];
             qhead++;
-            total += cur.dist * (g->v[cur.node].num_children+1) * (g->v[i].num_children+1);
+            total += cur.dist * (g->v[cur.node].num_children + 1) * (g->v[i].num_children + 1);
 
-            if (cur.dist + g->v[cur.node].tree_depth-1 + g->v[i].tree_depth-1 > g->diameter) {
-                g->diameter = cur.dist + g->v[cur.node].tree_depth-1 + g->v[i].tree_depth-1;
+            if (cur.dist + g->v[cur.node].tree_depth - 1 + g->v[i].tree_depth - 1 > g->diameter) {
+                g->diameter = cur.dist + g->v[cur.node].tree_depth - 1 + g->v[i].tree_depth - 1;
                 if (DEBUG) printf("370");
                 while (g->diameter + 1 > g->max_distance) {
                     resize_typical(g);
@@ -397,22 +257,24 @@ void update_distance(struct es_graph *g) {
 
     for (unsigned int i = 0; i < g->vsize; i++) {
         if (g->v[i].parent == i) continue;
-        total += (g->v[i].num_children+1) * (g->component_sizes[find_component_root(g, i)] - (g->v[i].num_children+1));
+        total += (g->v[i].num_children + 1) *
+                 (g->component_sizes[find_component_root(g, i)] - (g->v[i].num_children + 1));
         unsigned int parent = g->v[i].parent;
         for (unsigned int j = 1; j < g->v[parent].tree_depth; j++) {
             for (unsigned int k = 0; k < g->v[i].tree_depth; k++) {
-                if (k + j + 1 > g->diameter && g->v[parent].tree_struct[j] - g->v[i].tree_struct[j-1] > 0) {
+                if (k + j + 1 > g->diameter && g->v[parent].tree_struct[j] - g->v[i].tree_struct[j - 1] > 0) {
                     g->diameter = k + j + 1;
                     if (DEBUG) printf("405");
-                    while (g->diameter+1 > g->max_distance) {
+                    while (g->diameter + 1 > g->max_distance) {
                         resize_typical(g);
                     }
                 }
-                g->typical_distance[(k + j + 1)] += g->v[i].tree_struct[k] * (g->v[parent].tree_struct[j] - g->v[i].tree_struct[j - 1]);
+                g->typical_distance[(k + j + 1)] +=
+                        g->v[i].tree_struct[k] * (g->v[parent].tree_struct[j] - g->v[i].tree_struct[j - 1]);
             }
         }
         for (unsigned int k = 0; k < g->v[i].tree_depth; k++) {
-            g->typical_distance[k+1] += g->v[i].tree_struct[k];
+            g->typical_distance[k + 1] += g->v[i].tree_struct[k];
         }
     }
 
@@ -436,21 +298,21 @@ void update_distance(struct es_graph *g) {
 
 void edge_step(struct es_graph *g) {
     unsigned int r1, r2;
-    if (rand_double() * (2*g->esize + 2*g->d) >= 2*g->d) {
-        r1 = g->distribution[rand_int(2*g->esize)];
+    if (rand_double() * (2 * g->esize + 2 * g->d) >= 2 * g->d) {
+        r1 = g->distribution[rand_int(2 * g->esize)];
     } else {
-        r1 = (unsigned int)rand_int(g->vsize);
+        r1 = (unsigned int) rand_int(g->vsize);
     }
-    if (rand_double() * (2*g->esize + 2*g->d) >= 2*g->d) {
-        r2 = g->distribution[rand_int(2*g->esize)];
+    if (rand_double() * (2 * g->esize + 2 * g->d) >= 2 * g->d) {
+        r2 = g->distribution[rand_int(2 * g->esize)];
     } else {
-        r2 = (unsigned int)rand_int(g->vsize);
+        r2 = (unsigned int) rand_int(g->vsize);
     }
     struct edge *e = &g->e[g->esize];
     e->head = r1;
     e->tail = r2;
-    g->distribution[2*g->esize] = r1;
-    g->distribution[2*g->esize+1] = r2;
+    g->distribution[2 * g->esize] = r1;
+    g->distribution[2 * g->esize + 1] = r2;
 
     bool exists = (r1 == r2);
     if (!exists) {
@@ -471,44 +333,54 @@ void edge_step(struct es_graph *g) {
         }
     }
     if (!exists) {
-        struct simple_doubly_linked_list sdll;
-        init_simple_linked_list(&sdll);
-        simple_append(&sdll, r1);
+        unsigned int q[g->diameter + 2];
+        unsigned int qtail = 0;
+
+        q[qtail] = r1;
+        qtail++;
         unsigned int tmp = r1;
         while (g->v[tmp].parent != tmp) {
             unsigned int parent = g->v[tmp].parent;
-            simple_append(&sdll, parent);
+            q[qtail] = parent;
+            qtail++;
             g->v[tmp].parent = tmp;
             tmp = parent;
         }
-        unsigned int prev = simple_pop_right(&sdll);
-        while (!simple_is_empty(&sdll)) {
-            unsigned int next = simple_pop_right(&sdll);
+        qtail--;
+        unsigned int prev = q[qtail];
+
+        while (qtail > 0) {
+            qtail--;
+            unsigned int next = q[qtail];
             for (unsigned int i = 0; i < g->v[next].tree_depth; i++) {
                 g->v[prev].tree_struct[i + 1] -= g->v[next].tree_struct[i];
                 g->v[prev].num_children -= g->v[next].tree_struct[i];
             }
-            while (g->v[prev].tree_struct[g->v[prev].tree_depth-1] == 0) {
+            while (g->v[prev].tree_struct[g->v[prev].tree_depth - 1] == 0) {
                 g->v[prev].tree_depth--;
             }
             prev = next;
         }
-        simple_append(&sdll, r2);
+        q[qtail] = r2;
+        qtail++;
         tmp = r2;
         while (g->v[tmp].parent != tmp) {
             unsigned int parent = g->v[tmp].parent;
-            simple_append(&sdll, parent);
+            q[qtail] = parent;
+            qtail++;
             g->v[tmp].parent = tmp;
             tmp = parent;
         }
-        prev = simple_pop_right(&sdll);
-        while (!simple_is_empty(&sdll)) {
-            unsigned int next = simple_pop_right(&sdll);
+        qtail--;
+        prev = q[qtail];
+        while (qtail > 0) {
+            qtail--;
+            unsigned int next = q[qtail];
             for (unsigned int i = 0; i < g->v[next].tree_depth; i++) {
                 g->v[prev].tree_struct[i + 1] -= g->v[next].tree_struct[i];
                 g->v[prev].num_children -= g->v[next].tree_struct[i];
             }
-            while (g->v[prev].tree_struct[g->v[prev].tree_depth-1] == 0) {
+            while (g->v[prev].tree_struct[g->v[prev].tree_depth - 1] == 0) {
                 g->v[prev].tree_depth--;
             }
             prev = next;
@@ -518,53 +390,52 @@ void edge_step(struct es_graph *g) {
         if (g->v[r1].nbs_size > g->v[r1].max_nbs_size) {
             resize_nbs(&g->v[r1]);
         }
-        g->v[r1].nbs_list[g->v[r1].nbs_size-1] = r2;
+        g->v[r1].nbs_list[g->v[r1].nbs_size - 1] = r2;
 
         g->v[r2].nbs_size += 1;
         if (g->v[r2].nbs_size > g->v[r2].max_nbs_size) {
             resize_nbs(&g->v[r2]);
         }
-        g->v[r2].nbs_list[g->v[r2].nbs_size-1] = r1;
+        g->v[r2].nbs_list[g->v[r2].nbs_size - 1] = r1;
 
         unsigned int croot1 = find_component_root(g, r1);
         unsigned int croot2 = find_component_root(g, r2);
 
         if (croot1 != croot2) {
-            g->total_distance_div -= (g->component_sizes[croot1])*(g->component_sizes[croot1]-1);
-            g->total_distance_div -= (g->component_sizes[croot2])*(g->component_sizes[croot2]-1);
+            g->total_distance_div -= (g->component_sizes[croot1]) * (g->component_sizes[croot1] - 1);
+            g->total_distance_div -= (g->component_sizes[croot2]) * (g->component_sizes[croot2] - 1);
             if (g->component_sizes[croot1] > g->component_sizes[croot2]) {
                 g->component_tree[croot2] = croot1;
                 g->component_sizes[croot1] += g->component_sizes[croot2];
-                g->total_distance_div += (g->component_sizes[croot1])*(g->component_sizes[croot1]-1);
+                g->total_distance_div += (g->component_sizes[croot1]) * (g->component_sizes[croot1] - 1);
             } else {
                 g->component_tree[croot1] = croot2;
                 g->component_sizes[croot2] += g->component_sizes[croot1];
-                g->total_distance_div += (g->component_sizes[croot2])*(g->component_sizes[croot2]-1);
+                g->total_distance_div += (g->component_sizes[croot2]) * (g->component_sizes[croot2] - 1);
             }
         }
-        update_distance(g);
+        mark_nodes(g, e->head, e->tail);
+//        update_distance(g);
+
     }
 
     g->esize += 1;
 }
 
 
-
-
-
 void vertex_step(struct es_graph *g) {
-    g->distribution[g->esize*2] = g->vsize;
+    g->distribution[g->esize * 2] = g->vsize;
     unsigned int r;
-    if (rand_double() * (2*g->esize+1 + 2*g->d) >= 2*g->d) {
-        r = g->distribution[rand_int(2*g->esize + 1)];
+    if (rand_double() * (2 * g->esize + 1 + 2 * g->d) >= 2 * g->d) {
+        r = g->distribution[rand_int(2 * g->esize + 1)];
     } else {
-        r = (unsigned int)rand_int(g->vsize+1);
+        r = (unsigned int) rand_int(g->vsize + 1);
     }
     struct edge *e = &(g->e[g->esize]);
     e->head = r;
     e->tail = g->vsize;
-    g->distribution[2*g->esize+1] = r;
-    struct node* newnode = init_node(&g->v[g->vsize]);
+    g->distribution[2 * g->esize + 1] = r;
+    struct node *newnode = init_node(&g->v[g->vsize]);
     newnode->parent = r;
     if (r != g->vsize) {
         newnode->nbs_size = 1;
@@ -576,13 +447,13 @@ void vertex_step(struct es_graph *g) {
         if (g->v[r].nbs_size > g->v[r].max_nbs_size) {
             resize_nbs(&g->v[r]);
         }
-        g->v[r].nbs_list[g->v[r].nbs_size-1] = g->vsize;
+        g->v[r].nbs_list[g->v[r].nbs_size - 1] = g->vsize;
 
         unsigned int prev = g->vsize;
         unsigned int tmp = r;
         unsigned int depth = 1;
         while (true) {
-            if (depth+1 > g->v[tmp].max_tree_depth) {
+            if (depth + 1 > g->v[tmp].max_tree_depth) {
                 resize_tree(&g->v[tmp]);
             }
 
@@ -596,21 +467,21 @@ void vertex_step(struct es_graph *g) {
             g->total_distance += depth;
             g->typical_distance[depth] += 1;
             for (unsigned int i = 1; i < g->v[tmp].tree_depth; i++) {
-                g->total_distance += (depth+i)*(g->v[tmp].tree_struct[i] - g->v[prev].tree_struct[i-1]);
-                if ( depth+i > g->diameter && g->v[tmp].tree_struct[i] - g->v[prev].tree_struct[i-1] > 0) {
-                    g->diameter = depth+i;
+                g->total_distance += (depth + i) * (g->v[tmp].tree_struct[i] - g->v[prev].tree_struct[i - 1]);
+                if (depth + i > g->diameter && g->v[tmp].tree_struct[i] - g->v[prev].tree_struct[i - 1] > 0) {
+                    g->diameter = depth + i;
                     if (DEBUG) printf("598");
-                    while (g->diameter+1 > g->max_distance) {
+                    while (g->diameter + 1 > g->max_distance) {
                         resize_typical(g);
                     }
                 }
-                g->typical_distance[(depth+i)] += (g->v[tmp].tree_struct[i] - g->v[prev].tree_struct[i-1]);
+                g->typical_distance[(depth + i)] += (g->v[tmp].tree_struct[i] - g->v[prev].tree_struct[i - 1]);
 
             }
             if (depth > g->diameter) {
                 if (DEBUG) printf("607");
                 g->diameter = depth;
-                while (g->diameter+1 > g->max_distance) {
+                while (g->diameter + 1 > g->max_distance) {
                     resize_typical(g);
                 }
             }
@@ -624,12 +495,12 @@ void vertex_step(struct es_graph *g) {
 
         }
 
-        bool* found = (bool*)malloc(sizeof(bool)*g->vsize);
-        struct nd_tuple* q = malloc(sizeof(struct nd_tuple)*g->vsize);
+        bool *found = (bool *) malloc(sizeof(bool) * g->vsize);
+        struct nd_tuple *q = malloc(sizeof(struct nd_tuple) * g->vsize);
         unsigned int qhead = 0;
         unsigned int qtail = 0;
 
-        memset(found, false, sizeof(bool)*g->vsize);
+        memset(found, false, sizeof(bool) * g->vsize);
         found[tmp] = true;
         q[qtail].node = tmp;
         q[qtail].dist = 0;
@@ -640,8 +511,8 @@ void vertex_step(struct es_graph *g) {
 
 
             if (cur.dist > 0) {
-                if (depth+g->v[cur.node].tree_depth-1+cur.dist > g->diameter) {
-                    g->diameter = depth+g->v[cur.node].tree_depth-1+cur.dist;
+                if (depth + g->v[cur.node].tree_depth - 1 + cur.dist > g->diameter) {
+                    g->diameter = depth + g->v[cur.node].tree_depth - 1 + cur.dist;
                     if (DEBUG) printf("641");
                     while (g->diameter + 1 > g->max_distance) {
                         resize_typical(g);
@@ -650,7 +521,7 @@ void vertex_step(struct es_graph *g) {
 
                 for (unsigned int i = 0; i < g->v[cur.node].tree_depth; i++) {
                     g->total_distance += (depth + i + cur.dist) * g->v[cur.node].tree_struct[i];
-                    g->typical_distance[depth+i+cur.dist] += g->v[cur.node].tree_struct[i];
+                    g->typical_distance[depth + i + cur.dist] += g->v[cur.node].tree_struct[i];
                 }
 
             }
@@ -669,10 +540,8 @@ void vertex_step(struct es_graph *g) {
         free(found);
 
 
-        g->total_distance_div += 2*(g->component_sizes[croot]-1);
+        g->total_distance_div += 2 * (g->component_sizes[croot] - 1);
 
-
-//        g->v[tmp].tree_struct[depth] += 1;
     } else {
         g->component_tree[g->vsize] = g->vsize;
         g->component_sizes[g->vsize] = 1;
@@ -681,198 +550,219 @@ void vertex_step(struct es_graph *g) {
     g->esize += 1;
 }
 
-void evolve(struct es_graph *g) {
-    if (rand_double() < p()) {
-        vertex_step(g);
-    } else {
-        edge_step(g);
-    }
+
+void resize_tree(struct node *n) {
+    unsigned int old_size = n->max_tree_depth;
+    n->max_tree_depth *= 2;
+    n->tree_struct = realloc(n->tree_struct, sizeof(int) * n->max_tree_depth);
+    memset(n->tree_struct + sizeof(int) * old_size, 0, sizeof(int) * old_size);
 }
 
-unsigned long total_distance2(struct es_graph *g) {
-    unsigned int* coeffs = malloc(sizeof(int)*g->vsize);
-    memset(coeffs, 0, sizeof(int)*g->vsize);
-    unsigned int* counters = malloc(sizeof(int)*g->vsize);
-    bool* trimmed = calloc(g->vsize, sizeof(bool));
-    bool* seen = malloc(sizeof(bool)*g->vsize);
-    unsigned int* components = calloc(g->vsize, sizeof(unsigned int));
-    unsigned int* path_lengths = calloc(g->vsize, sizeof(unsigned int));
-    unsigned int diameter = 0;
-    struct simple_doubly_linked_list *sll = malloc(sizeof(struct simple_doubly_linked_list));
-    init_simple_linked_list(sll);
-
-    for (unsigned int i = 0; i < g->vsize; i++) {
-        counters[i] = g->v[i].nbs_size;
-        coeffs[i] = 1;
-    }
-
-    // determine components
-    unsigned int component_counter = 0;
-    for (unsigned int i = 0; i < g->vsize; i++) {
-        if (components[i] != 0) continue;
-
-        component_counter++;
-        simple_append(sll, i);
-        unsigned int cur;
-        while (!simple_is_empty(sll)) {
-//            for (unsigned int k = 0; k < g->vsize; k++) {
-//                printf("%3d: %d, %d, %d\n", k, trimmed[k], coeffs[k], counters[k]);
-//            }
-//            printf("\n\n");
-            cur = simple_pop(sll);
-            if (components[cur] != 0) {
-                continue;
-            }
-            components[cur] = component_counter;
-            for (unsigned int j = 0; j < g->v[cur].nbs_size; j++) {
-                unsigned int nb_id = g->v[cur].nbs_list[j];
-                if (components[nb_id] == 0) {
-                    simple_append(sll, nb_id);
-                }
-            }
-        }
-    }
-
-    unsigned int* component_sizes = calloc(component_counter+1, sizeof(unsigned int));
-    for (unsigned int i = 0; i < g->vsize; i++) {
-        component_sizes[components[i]]++;
-    }
-    for (unsigned int i = 0; i < g->vsize; i++) {
-        components[i] = component_sizes[components[i]];
-    }
-
-
-
-    // Trim leaves
-    for (unsigned int i = 0; i < g->vsize; i++) {
-        if (trimmed[i] || counters[i] != 1) {
-            continue;
-        }
-
-        simple_append(sll, i);
-        unsigned int cur;
-        while (!simple_is_empty(sll)) {
-//            for (unsigned int k = 0; k < g->vsize; k++) {
-//                printf("%3d: %d, %d, %d\n", k, trimmed[k], coeffs[k], counters[k]);
-//            }
-//            printf("\n\n");
-            cur = simple_pop(sll);
-            if (trimmed[cur]) {
-                continue;
-            }
-            trimmed[cur] = true;
-            for (unsigned int j = 0; j < g->v[cur].nbs_size; j++) {
-                unsigned int nb_id = g->v[cur].nbs_list[j];
-                if (trimmed[nb_id]) continue;
-                counters[nb_id]--;
-                coeffs[nb_id] += coeffs[cur];
-                if (path_lengths[cur] + 1 > path_lengths[nb_id]) {
-                    path_lengths[nb_id] = path_lengths[cur] + 1;
-                }
-                if (!trimmed[nb_id] && counters[nb_id] == 1) {
-                    simple_append(sll, nb_id);
-                }
-            }
-        }
-    }
-
-//    for (unsigned int k = 0; k < g->vsize; k++) {
-//        printf("%3d: %d, %d, %d\n", k, trimmed[k], coeffs[k], counters[k]);
-//    }
-//    printf("\n\n");
-
-
-    unsigned long total = 0;
-    struct linked_list *ll = malloc(sizeof(struct linked_list));
-    init_linked_list(ll);
-    for (unsigned int i = 0; i < g->vsize; i++) {
-        if (trimmed[i]) continue;
-        memset(seen, false, sizeof(bool)*g->vsize);
-        struct nd_tuple* n = malloc(sizeof(struct nd_tuple));
-        n->node = i;
-        n->dist = 0;
-        append(ll, n);
-        struct nd_tuple *cur;
-        while ((cur = (struct nd_tuple*)pop(ll)) != NULL) {
-            if (seen[cur->node] || trimmed[cur->node]) {
-                free(cur);
-                continue;
-            }
-//            printf("(%u, %u)\n", cur->node, cur->dist);
-            seen[cur->node] = true;
-            total += cur->dist * coeffs[cur->node]*coeffs[i];
-            if (cur->dist + path_lengths[cur->node] + path_lengths[i] > diameter) {
-                diameter = cur->dist + path_lengths[cur->node] + path_lengths[i];
-            }
-            for (unsigned int j = 0; j < g->v[cur->node].nbs_size; j++) {
-                unsigned int nb_id = g->v[cur->node].nbs_list[j];
-                if (!seen[nb_id] && !trimmed[nb_id]) {
-                    struct nd_tuple *next = malloc(sizeof(struct nd_tuple));
-                    next->node = nb_id;
-                    next->dist = cur->dist + 1;
-                    append(ll, next);
-                }
-            }
-            free(cur);
-        }
-
-    }
-    total >>= 1;
-
-    for (unsigned int i = 0; i < g->vsize; i++) {
-        if (!trimmed[i]) continue;
-        total += coeffs[i]*(components[i]-coeffs[i]);
-    }
-
-    free(path_lengths);
-    free(components);
-    free(ll);
-    free(sll);
-    free(coeffs);
-    free(counters);
-    free(trimmed);
-    free(seen);
-    free(component_sizes);
-    printf("%u\n", diameter);
-    return total;
+void resize_typical(struct es_graph *g) {
+    unsigned int old_size = g->max_distance;
+    g->max_distance *= 2;
+    g->typical_distance = realloc(g->typical_distance, sizeof(long) * g->max_distance);
+    memset(g->typical_distance + sizeof(long) * old_size, 0, sizeof(long) * old_size);
 }
 
-unsigned long total_distance(struct es_graph *g) {
-    bool* seen = malloc(sizeof(bool)*g->vsize);
-    unsigned long total = 0;
-    struct linked_list *ll = malloc(sizeof(struct linked_list));
-    init_linked_list(ll);
-    for (unsigned int i = 0; i < g->vsize; i++) {
-        memset(seen, false, sizeof(bool)*g->vsize);
-        struct nd_tuple* n = malloc(sizeof(struct nd_tuple));
-        n->node = i;
-        n->dist = 0;
-        append(ll, n);
-        struct nd_tuple *cur;
-        while ((cur = (struct nd_tuple*)pop(ll)) != NULL) {
-            if (seen[cur->node]) {
-                free(cur);
-                continue;
+
+void resize_nbs(struct node *n) {
+    n->max_nbs_size *= 2;
+    n->nbs_list = realloc(n->nbs_list, sizeof(int) * n->max_nbs_size);
+}
+
+void mark_nodes(struct es_graph *g, unsigned int n1, unsigned int n2) {
+    struct nd_tuple *q = malloc(sizeof(struct nd_tuple)*g->vsize);
+    unsigned int* d1 = calloc(g->vsize, sizeof(unsigned int));
+    unsigned int* d2 = calloc(g->vsize, sizeof(unsigned int));
+    bool* found = (bool *) malloc(sizeof(bool) * g->vsize);
+    unsigned int* marked1 = malloc(sizeof(int) * g->vsize);
+    unsigned int* marked2 = malloc(sizeof(int) * g->vsize);
+    bool* target = malloc(sizeof(bool)*g->vsize);
+    memset(target, false, sizeof(bool)*g->vsize);
+    struct nd_tuple cur;
+
+    memset(found, false, sizeof(bool) * g->vsize);
+
+    for (unsigned int i = 0; i < g-> vsize; i++) {
+        d1[i] = -2;
+        d2[i] = -2;
+    }
+
+//    memset(marked1, 255, sizeof(unsigned int) * g->vsize);
+//    memset(marked2, 255, sizeof(unsigned int) * g->vsize);
+    unsigned int qhead = 0;
+    unsigned int qtail = 0;
+
+    marked1[0] = n2;
+    marked2[0] = n1;
+    unsigned int m1size = 1;
+    unsigned int m2size = 1;
+
+    q[qtail].node = n1;
+    q[qtail].dist = 0;
+    qtail++;
+    found[n1] = true;
+    found[n2] = true;
+
+    while (qhead != qtail) {
+        cur = q[qhead];
+        qhead++;
+        d1[cur.node] = cur.dist;
+        for (unsigned int j = 0; j < g->v[cur.node].nbs_size; j++) {
+            unsigned int nb_id = g->v[cur.node].nbs_list[j];
+            if (!found[nb_id] && g->v[nb_id].parent == nb_id) {
+                q[qtail].node = nb_id;
+                q[qtail].dist = cur.dist + 1;
+                qtail++;
+                found[nb_id] = true;
             }
-//            printf("(%u, %u)\n", cur->node, cur->dist);
-            seen[cur->node] = true;
-            total += cur->dist;
-            for (unsigned int j = 0; j < g->v[cur->node].nbs_size; j++) {
-                unsigned int nb_id = g->v[cur->node].nbs_list[j];
-                if (!seen[nb_id]) {
-                    struct nd_tuple *next = malloc(sizeof(struct nd_tuple));
-                    next->node = nb_id;
-                    next->dist = cur->dist + 1;
-                    append(ll, next);
+        }
+    }
+
+
+    q[qtail].node = n2;
+    q[qtail].dist = 0;
+    qtail++;
+    memset(found, false, sizeof(bool) * g->vsize);
+    found[n2] = true;
+    found[n1] = true;
+
+    while (qhead != qtail) {
+        cur = q[qhead];
+        qhead++;
+        d2[cur.node] = cur.dist;
+        for (unsigned int j = 0; j < g->v[cur.node].nbs_size; j++) {
+            unsigned int nb_id = g->v[cur.node].nbs_list[j];
+            if (!found[nb_id] && g->v[nb_id].parent == nb_id) {
+                q[qtail].node = nb_id;
+                q[qtail].dist = cur.dist + 1;
+                qtail++;
+                found[nb_id] = true;
+            }
+        }
+    }
+
+    unsigned int counttotal = 2;
+    for (unsigned int i = 0; i < g->vsize; i++) {
+        if (g->v[i].parent == i && i != n1 && i != n2) {
+            counttotal++;
+            if (d1[i] > d2[i] + 1) {
+                marked1[m1size] = i;
+                m1size++;
+            }
+            if (d2[i] > d1[i] + 1) {
+                marked2[m2size] = i;
+                m2size++;
+            }
+        }
+    }
+//    printf("(%u, %u) of %u\n", m1size, m2size, counttotal);
+
+    if (m2size < m1size) {
+        unsigned int *tmpptr = marked2;
+        unsigned int tmpsize = m2size;
+        marked2 = marked1;
+        m2size = m1size;
+        marked1 = tmpptr;
+        m1size = tmpsize;
+    }
+
+
+    for (unsigned int i = 0; i < m2size; i++) {
+        target[marked2[i]] = true;
+    }
+
+    for (unsigned int i = 0; i < m1size; i++) {
+        memset(found, false, sizeof(bool) * g->vsize);
+        found[marked1[i]] = true;
+        qhead = 0;
+        qtail = 0;
+
+        q[qtail].node = marked1[i];
+        q[qtail].dist = 0;
+        qtail++;
+
+        while (qhead != qtail) {
+            cur = q[qhead];
+            qhead++;
+
+            if (target[cur.node] && cur.dist > 0) {
+//                g->total_distance -= cur.dist * (g->v[cur.node].num_children + 1) * (g->v[marked1[i]].num_children + 1);
+                for (unsigned int j = 0; j < g->v[cur.node].tree_depth; j++) {
+                    for (unsigned int k = 0; k < g->v[marked1[i]].tree_depth; k++) {
+                        g->typical_distance[k + cur.dist + j] -= g->v[cur.node].tree_struct[j] * g->v[marked1[i]].tree_struct[k];
+                        g->total_distance -= (k + cur.dist + j) * g->v[cur.node].tree_struct[j] * g->v[marked1[i]].tree_struct[k];
+                    }
                 }
             }
-            free(cur);
+
+            for (unsigned int j = 0; j < g->v[cur.node].nbs_size; j++) {
+                unsigned int nb_id = g->v[cur.node].nbs_list[j];
+                if (!found[nb_id] && g->v[nb_id].parent == nb_id && !((cur.node == n1 && nb_id == n2) || (cur.node == n2 && nb_id == n1))) {
+                    q[qtail].node = nb_id;
+                    q[qtail].dist = cur.dist + 1;
+                    qtail++;
+                    found[nb_id] = true;
+                }
+            }
         }
 
+
+        memset(found, false, sizeof(bool) * g->vsize);
+        found[marked1[i]] = true;
+        qhead = 0;
+        qtail = 0;
+        q[qtail].node = marked1[i];
+        q[qtail].dist = 0;
+        qtail++;
+
+
+        while (qhead != qtail) {
+            cur = q[qhead];
+            qhead++;
+
+            if (target[cur.node] && cur.dist > 0) {
+
+                if (cur.dist + g->v[cur.node].tree_depth - 1 + g->v[marked1[i]].tree_depth - 1 > g->diameter) {
+                    g->diameter = cur.dist + g->v[cur.node].tree_depth - 1 + g->v[marked1[i]].tree_depth - 1;
+                    if (DEBUG) printf("722");
+                    while (g->diameter + 1 > g->max_distance) {
+                        resize_typical(g);
+                    }
+                }
+                for (unsigned int j = 0; j < g->v[cur.node].tree_depth; j++) {
+                    for (unsigned int k = 0; k < g->v[marked1[i]].tree_depth; k++) {
+                        g->typical_distance[k + cur.dist + j] += g->v[cur.node].tree_struct[j] * g->v[marked1[i]].tree_struct[k];
+                        g->total_distance += (k + cur.dist + j)*g->v[cur.node].tree_struct[j] * g->v[marked1[i]].tree_struct[k];
+                    }
+                }
+
+            }
+
+            for (unsigned int j = 0; j < g->v[cur.node].nbs_size; j++) {
+                unsigned int nb_id = g->v[cur.node].nbs_list[j];
+                if (!found[nb_id] && g->v[nb_id].parent == nb_id) {
+                    q[qtail].node = nb_id;
+                    q[qtail].dist = cur.dist + 1;
+                    qtail++;
+                    found[nb_id] = true;
+                }
+            }
+        }
     }
-    free(seen);
-    free(ll);
-    return total>>1;
+    while (g->typical_distance[g->diameter] == 0) {
+        g->diameter--;
+    }
+
+    free(found);
+    free(q);
+    free(marked1);
+    free(marked2);
+    free(d1);
+    free(d2);
+    free(target);
+
 }
 
 
@@ -881,14 +771,10 @@ double p() {
 }
 
 int main() {
-//    printf("%f\n", 0.9);
-//    printf("%d", false);
-//    exit(0);
-//    srandom(time(0));
 //    srand48(time(0));
 //    srand48(33112);
     srand48(96723);
-    struct es_graph* g = generate_edge_step(0, 10000);
+    struct es_graph *g = generate_edge_step(0, 100000);
 //    printf("%u\n%u\n", g->vsize, g->esize);
 //    for (int i = 0; i < g->esize; i++) {
 //        printf("%u: (%u, %u),  ", i, g->e[i].head, g->e[i].tail);
@@ -917,21 +803,9 @@ int main() {
 //    }
 //    printf("\n\n");
 ////    printf("%lu\n", total_distance(g));
-//    printf("%lu\n", total_distance2(g));
+////    printf("%lu\n", total_distance2(g));
 //    printf("%lu, %lu\n", div_fact, g->total_distance_div);
 
     fflush(stdout);
-//    return 0;
-    exit(0);
+    return 0;
 }
-
-//int main() {
-//    srandom(time(0));
-//    long sum = 0;
-//    int reps = 1000000000;
-//    for (int i = 0; i < reps; i++) {
-//        sum += (rand_double() < p() ? 1 : 0);
-//    }
-//    printf("%ld\n%.12f\n", sum, ((double)sum / (double)reps));
-//    return 0;
-//}
