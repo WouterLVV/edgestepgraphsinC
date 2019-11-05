@@ -8,6 +8,7 @@
 #include <time.h>
 #include <assert.h>
 #include <string.h>
+#include <math.h>
 
 
 //// Default Values
@@ -72,6 +73,7 @@ struct es_graph {
     unsigned long *typical_distance;
     unsigned long max_distance;
     unsigned int diameter;
+    unsigned long triangles;
 };
 
 
@@ -174,7 +176,7 @@ struct es_graph *generate_edge_step(double d, int t);
 
 void evolve(struct es_graph *g);
 
-double p();
+double p(struct es_graph *g);
 
 void vertex_step(struct es_graph *g);
 
@@ -185,6 +187,8 @@ void update_distance(struct es_graph *g);
 unsigned int find_component_root(struct es_graph *g, unsigned int n);
 
 void print_stats(struct es_graph *g);
+
+void print_everything(struct es_graph *g);
 
 void mark_nodes(struct es_graph *g, unsigned int n1, unsigned int n2, unsigned int croot);
 
@@ -219,6 +223,8 @@ struct es_graph *generate_edge_step(double d, int t) {
     g->diameter = 0;
     g->max_distance = MAX_DIAMETER;
     g->typical_distance = (unsigned long *) calloc(MAX_DIAMETER, sizeof(long));
+    g->triangles = 0;
+
 
 //    g->component_sizes[0] = 1;
     g->component_tree[0] = 0;
@@ -234,7 +240,7 @@ struct es_graph *generate_edge_step(double d, int t) {
     for (unsigned int i = 1; i < t; i++) {
         evolve(g);
         if (CSV_OUTPUT) {
-            print_stats(g);
+            print_everything(g);
         }
     }
     return g;
@@ -242,7 +248,7 @@ struct es_graph *generate_edge_step(double d, int t) {
 
 
 void evolve(struct es_graph *g) {
-    if (rand_double() < p()) {
+    if (rand_double() < p(g)) {
         vertex_step(g);
     } else {
         edge_step(g);
@@ -260,8 +266,36 @@ void print_stats(struct es_graph *g) {
     printf(";%lu;;%u", sum, g->num_components);
     for (unsigned int i = 0; i < g->num_components; i++) {
         struct component *c = &g->components[g->component_list[i]];
-        printf(";;%u;%lu;%f;%u", g->component_list[i], c->total_distance, (double) (2 * c->total_distance) / (double) c->total_distance_div,
+        printf(";;%u;%u;%lu;%f;%u", g->component_list[i], c->vsize, c->total_distance, (double) (2 * c->total_distance) / (double) c->total_distance_div,
                c->diameter);
+    }
+    printf("\n");
+}
+
+void print_basic(struct es_graph *g) {
+    printf("%u;%lu;%f;%u;", g->vsize, g->total_distance, (double) (2 * g->total_distance) / (double) g->total_distance_div,
+           g->diameter);
+    printf("[");
+    for (unsigned int j = 1; j <= g->diameter; j++) {
+        printf("%lu,", g->typical_distance[j]);
+    }
+    printf("]");
+}
+
+void print_everything(struct es_graph *g) {
+    printf("%u;%u;%lu;%f;%u;%lu;", g->esize, g->vsize, g->total_distance, (double) (2 * g->total_distance) / (double) g->total_distance_div,
+           g->diameter, g->triangles);
+    for (unsigned int j = 1; j <= g->diameter; j++) {
+        printf("%lu;", g->typical_distance[j]);
+    }
+    printf("%u", g->num_components);
+    for (unsigned int i = 0; i < g->num_components; i++) {
+        struct component *c = &g->components[g->component_list[i]];
+        printf(";%u;%u;%lu;%f;%u", g->component_list[i], c->vsize, c->total_distance, (double) (2 * c->total_distance) / (double) c->total_distance_div,
+               c->diameter);
+        for (unsigned int j = 1; j <= c->diameter; j++) {
+            printf(";%lu", c->typical_distance[j]);
+        }
     }
     printf("\n");
 }
@@ -410,6 +444,18 @@ void edge_step(struct es_graph *g) {
     if (!exists) {
         unsigned int q[g->diameter + 2];
         unsigned int qtail = 0;
+
+        bool* nbs = calloc(g->vsize, sizeof(bool));
+        for (unsigned int i = 0; i < g->v[r1].nbs_size; i++) {
+            nbs[g->v[r1].nbs_list[i]] = true;
+        }
+        for (unsigned int i = 0; i < g->v[r2].nbs_size; i++) {
+            if (nbs[g->v[r2].nbs_list[i]]) {
+                g->triangles++;
+            }
+        }
+        free(nbs);
+
 
         q[qtail] = r1;
         qtail++;
@@ -899,7 +945,7 @@ void mark_nodes(struct es_graph *g, unsigned int n1, unsigned int n2, unsigned i
 }
 
 
-double p() {
+double p(struct es_graph *g) {
     return 0.90;
 }
 
@@ -907,13 +953,13 @@ int main() {
 //    srand48(time(0));
 //    srand48(33112);
 //    unsigned long seed = time(0);
-    unsigned long seed = 96723;
+    long seed = 96723;
     srand48(seed);
-    struct es_graph *g = generate_edge_step(0, 40);
-    printf("%u\n%u\n", g->vsize, g->esize);
-    for (int i = 0; i < g->esize; i++) {
-        printf("%u: (%u, %u),  ", i, g->e[i].head, g->e[i].tail);
-    }
+    struct es_graph *g = generate_edge_step(0, 4000);
+//    printf("%u\n%u\n", g->vsize, g->esize);
+//    for (int i = 0; i < g->esize; i++) {
+//        printf("%u: (%u, %u),  ", i, g->e[i].head, g->e[i].tail);
+//    }
 //    printf("\n");
 //    for (int i = 0; i < g->vsize; i++) {
 //        printf("\n%u (%u): ", i, g->v[i].nbs_size);
