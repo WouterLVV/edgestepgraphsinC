@@ -498,7 +498,7 @@ int main() {
 //    srand48(time(0));
 //    srand48(33112);
     srand48(96723);
-    struct es_graph* g = generate_edge_step(0, 4000);
+    struct es_graph* g = generate_edge_step(0, 100000);
     printf("%u\n%u\n", g->vsize, g->esize);
 //    for (int i = 0; i < g->esize; i++) {
 //        printf("(%u, %u) ", g->e[i].head, g->e[i].tail);
