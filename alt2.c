@@ -192,6 +192,8 @@ void print_everything(struct es_graph *g);
 
 void mark_nodes(struct es_graph *g, unsigned int n1, unsigned int n2, unsigned int croot);
 
+bool edge_exists(unsigned int r1, unsigned int r2, struct es_graph *g);
+
 
 //// Array resizers;
 
@@ -405,6 +407,33 @@ unsigned int find_component_root(struct es_graph *g, unsigned int n) {
 //}
 
 
+bool edge_exists(unsigned int r1, unsigned int r2, struct es_graph *g) {
+    if (r1 == r2) return true;
+    if (g->v[r1].parent != r1 || g->v[r2].parent != r2) {
+        if (g->v[r1].num_children > g->v[r2].num_children) {
+            return g->v[r2].parent == r1;
+        } else {
+            return g->v[r1].parent == r2;
+        }
+    }
+    if (g->v[r1].nbs_size < g->v[r2].nbs_size) {
+        for (int i = 0; i < g->v[r1].nbs_size; i++) {
+            if (g->v[r1].nbs_list[i] == r2) {
+                return true;
+            }
+        }
+    } else {
+        for (int i = 0; i < g->v[r2].nbs_size; i++) {
+            if (g->v[r2].nbs_list[i] == r1) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+
 void edge_step(struct es_graph *g) {
     unsigned int r1, r2;
     if (rand_double() * (2 * g->esize + 2 * g->d) >= 2 * g->d) {
@@ -423,38 +452,12 @@ void edge_step(struct es_graph *g) {
     g->distribution[2 * g->esize] = r1;
     g->distribution[2 * g->esize + 1] = r2;
 
-    bool exists = (r1 == r2);
-    if (!exists) {
-        if (g->v[r1].nbs_size < g->v[r2].nbs_size) {
-            for (int i = 0; i < g->v[r1].nbs_size; i++) {
-                if (g->v[r1].nbs_list[i] == r2) {
-                    exists = true;
-                    break;
-                }
-            }
-        } else {
-            for (int i = 0; i < g->v[r2].nbs_size; i++) {
-                if (g->v[r2].nbs_list[i] == r1) {
-                    exists = true;
-                    break;
-                }
-            }
-        }
-    }
+    bool exists = edge_exists(r1, r2, g);
     if (!exists) {
         unsigned int q[g->diameter + 2];
         unsigned int qtail = 0;
 
-        bool* nbs = calloc(g->vsize, sizeof(bool));
-        for (unsigned int i = 0; i < g->v[r1].nbs_size; i++) {
-            nbs[g->v[r1].nbs_list[i]] = true;
-        }
-        for (unsigned int i = 0; i < g->v[r2].nbs_size; i++) {
-            if (nbs[g->v[r2].nbs_list[i]]) {
-                g->triangles++;
-            }
-        }
-        free(nbs);
+
 
 
         q[qtail] = r1;
@@ -464,6 +467,11 @@ void edge_step(struct es_graph *g) {
             unsigned int parent = g->v[tmp].parent;
             q[qtail] = parent;
             qtail++;
+            g->v[parent].nbs_size++;
+            if (g->v[parent].nbs_size > g->v[parent].max_nbs_size) {
+                resize_nbs(&g->v[parent]);
+            }
+            g->v[parent].nbs_list[g->v[parent].nbs_size-1] = tmp;
             g->v[tmp].parent = tmp;
             tmp = parent;
         }
@@ -489,6 +497,11 @@ void edge_step(struct es_graph *g) {
             unsigned int parent = g->v[tmp].parent;
             q[qtail] = parent;
             qtail++;
+            g->v[parent].nbs_size++;
+            if (g->v[parent].nbs_size > g->v[parent].max_nbs_size) {
+                resize_nbs(&g->v[parent]);
+            }
+            g->v[parent].nbs_list[g->v[parent].nbs_size-1] = tmp;
             g->v[tmp].parent = tmp;
             tmp = parent;
         }
@@ -518,6 +531,17 @@ void edge_step(struct es_graph *g) {
             resize_nbs(&g->v[r2]);
         }
         g->v[r2].nbs_list[g->v[r2].nbs_size - 1] = r1;
+
+        bool* nbs = calloc(g->vsize, sizeof(bool));
+        for (unsigned int i = 0; i < g->v[r1].nbs_size; i++) {
+            nbs[g->v[r1].nbs_list[i]] = true;
+        }
+        for (unsigned int i = 0; i < g->v[r2].nbs_size; i++) {
+            if (nbs[g->v[r2].nbs_list[i]]) {
+                g->triangles++;
+            }
+        }
+        free(nbs);
 
         unsigned int croot1 = find_component_root(g, r1);
         unsigned int croot2 = find_component_root(g, r2);
@@ -557,11 +581,11 @@ void vertex_step(struct es_graph *g) {
         c->vsize += 1;
         c->esize += 1;
 
-        g->v[r].nbs_size++;
-        if (g->v[r].nbs_size > g->v[r].max_nbs_size) {
-            resize_nbs(&g->v[r]);
-        }
-        g->v[r].nbs_list[g->v[r].nbs_size - 1] = g->vsize;
+//        g->v[r].nbs_size++;
+//        if (g->v[r].nbs_size > g->v[r].max_nbs_size) {
+//            resize_nbs(&g->v[r]);
+//        }
+//        g->v[r].nbs_list[g->v[r].nbs_size - 1] = g->vsize;
 
         unsigned int prev = g->vsize;
         unsigned int tmp = r;
@@ -947,7 +971,7 @@ void mark_nodes(struct es_graph *g, unsigned int n1, unsigned int n2, unsigned i
 
 
 //double p(struct es_graph *g) {
-//    return 0.90;
+//    return 0.60;
 //}
 
 //double p(struct es_graph *g) {
@@ -955,15 +979,15 @@ void mark_nodes(struct es_graph *g, unsigned int n1, unsigned int n2, unsigned i
 //    return 1./pow(t, 1.01);
 //}
 //
-//double p(struct es_graph *g) {
-//    double t = (double)g->esize;
-//    return 1./log2(t);
-//}
-
 double p(struct es_graph *g) {
     double t = (double)g->esize;
-    return 1./log(t);
+    return 1./log2(t);
 }
+
+//double p(struct es_graph *g) {
+//    double t = (double)g->esize;
+//    return 1./log(t);
+//}
 
 int main() {
 //    srand48(time(0));
@@ -972,13 +996,12 @@ int main() {
     long seed = 96723;
 //    long seed = 96724;
     srand48(seed);
-    struct es_graph *g = generate_edge_step(0, 100000);
+    struct es_graph *g = generate_edge_step(0, 40000);
     unsigned int ctr = 0;
     for (unsigned int i = 0; i < g->vsize; i++) {
         ctr += g->v[i].parent == i;
     }
     printf("%u\n", ctr);
-
 //    printf("%u\n%u\n", g->vsize, g->esize);
 //    for (int i = 0; i < g->esize; i++) {
 //        printf("%u: (%u, %u),  ", i, g->e[i].head, g->e[i].tail);
