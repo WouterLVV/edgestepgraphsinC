@@ -12,3 +12,6 @@ target_link_libraries(edgestepgraph2 m)
 
 add_executable(edgestepgraph3 alt2.c)
 target_link_libraries(edgestepgraph3 m)
+
+add_executable(edgestepgraph4 alt3.c)
+target_link_libraries(edgestepgraph4 m)
