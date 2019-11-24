@@ -238,12 +238,14 @@ void init_es_graph(struct es_graph *g, double d, unsigned int t, unsigned int e_
     g->central_map = calloc(t, sizeof(unsigned int));
     g->central_list = calloc(t, sizeof(unsigned int));
     g->distance = calloc((e_central * e_central), sizeof(char));
+    memset(g->distance, -2, (e_central * e_central)* sizeof(char));
 
     g->vsize = 1;
     g->esize = 1;
 
     g->dsize = e_central;
     g->csize = 1;
+    g->distance[0] = 0;
 
     g->component_tree[0] = 0;
     g->component_list[0] = 0;
@@ -365,7 +367,7 @@ void vertex_central_update(struct es_graph *g, struct component *c, struct nd_tu
         unsigned int target = g->central_list[i];
         unsigned char distance = dist(g, root_of_tree, target);
 
-        if (distance > 0) {
+        if (target != root_of_tree && distance < 254) {
 
             if (depth_of_new_node + g->v[target].tree_depth - 1 + distance > c->diameter) {
                 c->diameter = depth_of_new_node + g->v[target].tree_depth - 1 + distance;
@@ -408,7 +410,10 @@ void vertex_step(struct es_graph *g) {
         create_new_component(g, g->vsize);
         g->central_map[g->vsize] = g->csize;
         g->central_list[g->csize] = g->vsize;
+        setdist(g, g->vsize, g->vsize, 0);
         g->csize++;
+        if (g->csize + 1 > g->dsize) resize_central(g);
+
     }
     g->vsize += 1;
     g->esize += 1;
@@ -420,11 +425,14 @@ void add_vertex_to_central(struct es_graph* g, unsigned int n, unsigned int pare
     g->central_list[g->csize] = n;
     unsigned int n_index = g->csize;
     unsigned int p_index = g->central_map[parent];
+    unsigned int croot = find_component_root(g, n);
 
     for (unsigned int i = 0; i < g->csize; i++) {
+        if (find_component_root(g, g->central_list[i]) != croot) continue;
         g->distance[n_index*g->dsize + i] = g->distance[p_index*g->dsize + i] + 1;
         g->distance[i*g->dsize + n_index] = g->distance[i*g->dsize + p_index] + 1;
     }
+    g->distance[n_index*g->dsize + n_index] = 0;
     g->csize++;
     if (g->csize + 1 >= g->dsize) {
         resize_central(g);
@@ -436,9 +444,9 @@ void resize_central(struct es_graph *g) {
 
     for (signed int i = g->dsize-1; i >= 0; i--) {
         memmove(&g->distance[i*g->dsize*2], &g->distance[i*g->dsize], g->dsize * sizeof(char));
-        memset(&g->distance[i*g->dsize*2+g->dsize], 0, g->dsize * sizeof(char));
+        memset(&g->distance[i*g->dsize*2+g->dsize], -2, g->dsize * sizeof(char));
     }
-    memset(&g->distance[g->dsize*g->dsize*2], 0, g->dsize * g->dsize * 2 * sizeof(char));
+    memset(&g->distance[g->dsize*g->dsize*2], -2, g->dsize * g->dsize * 2 * sizeof(char));
     g->dsize *= 2;
 //    printf("Resized!\n");
 //    exit(1);
@@ -535,7 +543,7 @@ void edge_update_distances(struct es_graph *g, unsigned int n1, unsigned int n2,
 
     unsigned int counttotal = 2;
     for (unsigned int i = 0; i < g->vsize; i++) {
-        if (g->v[i].parent == i && i != n1 && i != n2) {
+        if (g->v[i].parent == i && i != n1 && i != n2 && find_component_root(g, i) == croot) {
             counttotal++;
             if (dist(g, n1, i) > dist(g, n2, i) + 1) {
                 marked1[m1size] = i;
@@ -555,12 +563,12 @@ void edge_update_distances(struct es_graph *g, unsigned int n1, unsigned int n2,
             unsigned char dij = dist(g, vi, vj);
             unsigned char newij = dist(g, vi, n2) + 1 + dist(g, n1, vj);
 
-            if (dij == 0 || newij < dij) {
+            if (dij >= 254 || newij < dij) {
                 setdist(g, vi, vj, newij);
                 for (unsigned int k = 0; k < g->v[vi].tree_depth; k++) {
                     for (unsigned int l = 0; l < g->v[vj].tree_depth; l++) {
                         if (l + newij + k > c->diameter) c->diameter = l + newij + k;
-                        if (dij > 0) c->typical_distance[l + dij + k] -= g->v[vi].tree_struct[k] * g->v[vj].tree_struct[l];
+                        if (dij < 254) c->typical_distance[l + dij + k] -= g->v[vi].tree_struct[k] * g->v[vj].tree_struct[l];
                         c->typical_distance[l + newij + k] += g->v[vi].tree_struct[k] * g->v[vj].tree_struct[l];
                     }
                 }
@@ -576,9 +584,9 @@ void edge_update_distances(struct es_graph *g, unsigned int n1, unsigned int n2,
     free(marked2);
 }
 
-double p(struct es_graph *g) {
-    return 0.90;
-}
+//double p(struct es_graph *g) {
+//    return 0.20;
+//}
 
 //double p(struct es_graph *g) {
 //    double t = (double)g->esize;
@@ -590,19 +598,19 @@ double p(struct es_graph *g) {
 //    return 1./log2(t);
 //}
 
-//double p(struct es_graph *g) {
-//    double t = (double)g->esize;
-//    return 1./log(t);
-//}
+double p(struct es_graph *g) {
+    double t = (double)g->esize;
+    return 1./log(t);
+}
 
 int main() {
 //    srand48(time(0));
 //    srand48(33112);
-//    long seed = time(0);
-    long seed = 96723;
+    long seed = time(0);
+//    long seed = 96723;
 //    long seed = 96724;
     srand48(seed);
-    struct es_graph *g = generate_edge_step(0, 10000, 100);
+    struct es_graph *g = generate_edge_step(0, 400000, 10000);
 //    unsigned int ctr = 0;
 //    for (unsigned int i = 0; i < g->vsize; i++) {
 //        ctr += g->v[i].parent == i;

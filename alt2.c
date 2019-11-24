@@ -1000,19 +1000,19 @@ void edge_update_distances(struct es_graph *g, unsigned int n1, unsigned int n2,
 }
 
 
-double p(struct es_graph *g) {
-    return 0.90;
-}
+//double p(struct es_graph *g) {
+//    return 0.20;
+//}
 
 //double p(struct es_graph *g) {
 //    double t = (double)g->esize;
 //    return 1./pow(t, 1.01);
 //}
 //
-//double p(struct es_graph *g) {
-//    double t = (double)g->esize;
-//    return 1./log2(t);
-//}
+double p(struct es_graph *g) {
+    double t = (double)g->esize;
+    return 1./log2(t);
+}
 
 //double p(struct es_graph *g) {
 //    double t = (double)g->esize;
@@ -1022,11 +1022,11 @@ double p(struct es_graph *g) {
 int main() {
 //    srand48(time(0));
 //    srand48(33112);
-//    long seed = time(0);
-    long seed = 96723;
+    long seed = time(0);
+//    long seed = 96723;
 //    long seed = 96724;
     srand48(seed);
-    struct es_graph *g = generate_edge_step(0, 10000);
+    struct es_graph *g = generate_edge_step(0, 400000);
 //    unsigned int ctr = 0;
 //    for (unsigned int i = 0; i < g->vsize; i++) {
 //        ctr += g->v[i].parent == i;
